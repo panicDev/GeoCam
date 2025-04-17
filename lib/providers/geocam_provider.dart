@@ -27,6 +27,11 @@ class GeoCamProvider extends ChangeNotifier {
     _loadSavedData();
   }
 
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
   Future<void> _loadSavedData() async {
     _isLoading = true;
     notifyListeners();
@@ -171,4 +176,5 @@ class GeoCamProvider extends ChangeNotifier {
       imagePath: _imagePath,
     );
   }
+
 }
