@@ -119,4 +119,19 @@ GeoCam News implements comprehensive error handling for:
 
 ## Screenshots
 
-[Screenshots will be added here]
+<table>
+  <tr>
+    <td align="center"><b>GeoCam</b></td>
+    <td align="center"><b>News</b></td>
+    <td align="center"><b>Detail</b></td>
+    <td align="center"><b>Bookmark</b></td>
+    <td align="center"><b>Bookmark Empty</b></td>
+  </tr>
+  <tr>
+    <td><img src="docs/ss/geocam_tab.jpg" width="150" alt="Geo Cam Screen"/></td>
+    <td><img src="docs/ss/news.jpg" width="150" alt="News List Screen"/></td>
+    <td><img src="docs/ss/detail.jpg" width="150" alt="Detail News Screen"/></td>
+    <td><img src="docs/ss/bookmark_1.jpg" width="150" alt="Bookmark Screen"/></td>
+    <td><img src="docs/ss/bookmark_2.jpg" width="150" alt="Bookmark Empty Screen"/></td>
+  </tr>
+</table>
