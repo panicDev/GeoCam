@@ -44,8 +44,8 @@ Follow these steps to build and run the application:
 
 1. Clone this repository
    ```
-   git clone https://github.com/yourusername/geocam-news.git
-   cd geocam-news
+   git clone https://github.com/panicDev/GeoCam.git
+   cd GeoCam
    ```
 
 2. Install dependencies
