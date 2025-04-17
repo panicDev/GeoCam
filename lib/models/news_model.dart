@@ -1,11 +1,9 @@
-import '../utils/image_helper.dart';
-
 class NewsModel {
   final int id;
   final String title;
   final String body;
   final String imageUrl;
-  bool isBookmarked;
+  final bool isBookmarked;
 
   NewsModel({
     required this.id,
@@ -56,5 +54,21 @@ class NewsModel {
       'imageUrl': imageUrl,
       'isBookmarked': isBookmarked,
     };
+  }
+
+  NewsModel copyWith({
+    int? id,
+    String? title,
+    String? body,
+    String? imageUrl,
+    bool? isBookmarked,
+  }) {
+    return NewsModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      body: body ?? this.body,
+      imageUrl: imageUrl ?? this.imageUrl,
+      isBookmarked: isBookmarked ?? this.isBookmarked,
+    );
   }
 }

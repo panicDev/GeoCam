@@ -1,45 +1,27 @@
+import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-class ThemeProvider extends ChangeNotifier {
-  bool _isDarkMode = false;
-  bool get isDarkMode => _isDarkMode;
-  
-  static const String _themeKey = 'is_dark_mode';
+class ThemeState extends Equatable {
+  final bool isDarkMode;
 
-  ThemeProvider() {
-    _loadThemePreference();
-  }
+  const ThemeState({
+    this.isDarkMode = false,
+  });
 
-  Future<void> _loadThemePreference() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      _isDarkMode = prefs.getBool(_themeKey) ?? false;
-      notifyListeners();
-    } catch (e) {
-      // Fallback to light mode if there's an error
-      _isDarkMode = false;
-    }
-  }
-
-  Future<void> toggleTheme() async {
-    _isDarkMode = !_isDarkMode;
-    notifyListeners();
-    
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_themeKey, _isDarkMode);
-    } catch (e) {
-      // Handle error silently
-    }
+  ThemeState copyWith({
+    bool? isDarkMode,
+  }) {
+    return ThemeState(
+      isDarkMode: isDarkMode ?? this.isDarkMode,
+    );
   }
 
   ThemeData get themeData {
-    return _isDarkMode ? _darkTheme : _lightTheme;
+    return isDarkMode ? _darkTheme : _lightTheme;
   }
 
   // Light theme
-  final ThemeData _lightTheme = ThemeData(
+  static final ThemeData _lightTheme = ThemeData(
     primarySwatch: Colors.blue,
     brightness: Brightness.light,
     useMaterial3: true,
@@ -62,7 +44,7 @@ class ThemeProvider extends ChangeNotifier {
   );
 
   // Dark theme
-  final ThemeData _darkTheme = ThemeData(
+  static final ThemeData _darkTheme = ThemeData(
     primarySwatch: Colors.blue,
     brightness: Brightness.dark,
     useMaterial3: true,
@@ -86,4 +68,7 @@ class ThemeProvider extends ChangeNotifier {
       ),
     ),
   );
+
+  @override
+  List<Object?> get props => [isDarkMode];
 }

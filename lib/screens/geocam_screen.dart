@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:animations/animations.dart';
-import '../providers/geocam_provider.dart';
-import 'package:flutter/material.dart';
+import '../cubits/geocam/geocam_cubit.dart';
+import '../cubits/geocam/geocam_state.dart';
 
 class GeoCamScreen extends StatelessWidget {
   const GeoCamScreen({super.key});
@@ -13,128 +13,12 @@ class GeoCamScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Consumer<GeoCamProvider>(
-      builder: (context, geocamProvider, child) {
+    return BlocBuilder<GeoCamCubit, GeoCamState>(
+      builder: (context, state) {
         return Scaffold(
-          appBar: AppBar(
-            title: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.photo_camera_rounded,
-                    color: colorScheme.primary,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  'GeoCam',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-              ],
-            ),
-            centerTitle: false,
-            actions: [
-              // Help button
-              IconButton(
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => _buildHelpSheet(context),
-                  );
-                },
-                icon: Icon(
-                  Icons.help_outline_rounded,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                tooltip: 'Help & Info',
-              ),
-              // Status indicator with animation
-              Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color:
-                        geocamProvider.hasLocation && geocamProvider.hasImage
-                            ? colorScheme.primaryContainer
-                            : colorScheme.surfaceVariant,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        transitionBuilder: (
-                          Widget child,
-                          Animation<double> animation,
-                        ) {
-                          return ScaleTransition(
-                            scale: animation,
-                            child: child,
-                          );
-                        },
-                        child: Icon(
-                          geocamProvider.hasLocation && geocamProvider.hasImage
-                              ? Icons.check_circle_rounded
-                              : Icons.pending_rounded,
-                          key: ValueKey<bool>(
-                            geocamProvider.hasLocation &&
-                                geocamProvider.hasImage,
-                          ),
-                          size: 16,
-                          color:
-                              geocamProvider.hasLocation &&
-                                      geocamProvider.hasImage
-                                  ? colorScheme.primary
-                                  : colorScheme.outline,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        geocamProvider.hasLocation && geocamProvider.hasImage
-                            ? 'Ready'
-                            : 'Incomplete',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color:
-                              geocamProvider.hasLocation &&
-                                      geocamProvider.hasImage
-                                  ? colorScheme.onPrimaryContainer
-                                  : colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-            scrolledUnderElevation: 0,
-            backgroundColor: colorScheme.surface,
-          ),
           body: SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 20.0,
-                vertical: 16.0,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -142,8 +26,8 @@ class GeoCamScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 24.0),
                     child: LinearProgressIndicator(
-                      value: _calculateProgress(geocamProvider),
-                      backgroundColor: colorScheme.surfaceVariant,
+                      value: _calculateProgress(state),
+                      backgroundColor: colorScheme.surfaceContainerHighest,
                       color: colorScheme.primary,
                       borderRadius: BorderRadius.circular(8),
                       minHeight: 8,
@@ -151,16 +35,13 @@ class GeoCamScreen extends StatelessWidget {
                   ).animate().fadeIn(duration: 400.ms),
 
                   // Loading indicator
-                  if (geocamProvider.isLoading)
+                  if (state.isLoading)
                     Container(
                       padding: const EdgeInsets.all(16),
                       margin: const EdgeInsets.only(bottom: 24),
                       decoration: BoxDecoration(
-                        color: colorScheme.primaryContainer.withOpacity(0.3),
+                        color: colorScheme.primaryContainer,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: colorScheme.primary.withOpacity(0.2),
-                        ),
                       ),
                       child: Row(
                         children: [
@@ -193,19 +74,12 @@ class GeoCamScreen extends StatelessWidget {
                     ),
 
                   // Error message with dismiss button
-                  if (geocamProvider.error != null)
+                  if (state.error != null)
                     Container(
                       margin: const EdgeInsets.only(bottom: 24),
                       decoration: BoxDecoration(
                         color: colorScheme.errorContainer,
                         borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: colorScheme.shadow.withOpacity(0.1),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
                       ),
                       clipBehavior: Clip.antiAlias,
                       child: Column(
@@ -216,19 +90,19 @@ class GeoCamScreen extends StatelessWidget {
                               horizontal: 16,
                               vertical: 8,
                             ),
-                            color: colorScheme.error.withOpacity(0.1),
+                            color: colorScheme.error,
                             child: Row(
                               children: [
                                 Icon(
                                   Icons.warning_amber_rounded,
-                                  color: colorScheme.error,
+                                  color: colorScheme.onError,
                                   size: 18,
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
                                   'Error',
                                   style: TextStyle(
-                                    color: colorScheme.error,
+                                    color: colorScheme.onError,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -236,11 +110,10 @@ class GeoCamScreen extends StatelessWidget {
                                 IconButton(
                                   icon: Icon(
                                     Icons.close,
-                                    color: colorScheme.error,
+                                    color: colorScheme.onError,
                                   ),
                                   onPressed: () {
-                                    // Clear error
-                                    geocamProvider.clearError();
+                                    context.read<GeoCamCubit>().clearError();
                                   },
                                   iconSize: 18,
                                   padding: EdgeInsets.zero,
@@ -255,7 +128,7 @@ class GeoCamScreen extends StatelessWidget {
                           Padding(
                             padding: const EdgeInsets.all(16),
                             child: Text(
-                              geocamProvider.error!,
+                              state.error!,
                               style: TextStyle(
                                 color: colorScheme.onErrorContainer,
                               ),
@@ -265,8 +138,7 @@ class GeoCamScreen extends StatelessWidget {
                             padding: const EdgeInsets.all(16).copyWith(top: 0),
                             child: FilledButton.tonal(
                               onPressed: () {
-                                // Suggest retry action
-                                geocamProvider.clearError();
+                                context.read<GeoCamCubit>().clearError();
                               },
                               child: const Text('Try Again'),
                             ),
@@ -276,823 +148,15 @@ class GeoCamScreen extends StatelessWidget {
                     ).animate().shake().fadeIn(),
 
                   // Location Section
-                  Container(
-                        margin: const EdgeInsets.only(bottom: 24),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(28),
-                          boxShadow: [
-                            BoxShadow(
-                              color: colorScheme.shadow.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: OpenContainer(
-                          transitionType: ContainerTransitionType.fade,
-                          openBuilder:
-                              (context, _) =>
-                                  _LocationDetailView(geocamProvider),
-                          closedShape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(28),
-                          ),
-                          closedElevation: 0,
-                          closedColor: Colors.transparent,
-                          closedBuilder:
-                              (context, openContainer) => Card(
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(28),
-                                  side: BorderSide(
-                                    color:
-                                        geocamProvider.hasLocation
-                                            ? colorScheme.primary.withOpacity(
-                                              0.3,
-                                            )
-                                            : colorScheme.outlineVariant,
-                                    width:
-                                        geocamProvider.hasLocation ? 1.5 : 1.0,
-                                  ),
-                                ),
-                                color:
-                                    geocamProvider.hasLocation
-                                        ? colorScheme.primaryContainer
-                                            .withOpacity(0.15)
-                                        : colorScheme.surfaceContainerLow,
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(28),
-                                  onTap: openContainer,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      // Header with gradient
-                                      Container(
-                                        padding: const EdgeInsets.all(24.0),
-                                        decoration: BoxDecoration(
-                                          gradient:
-                                              geocamProvider.hasLocation
-                                                  ? LinearGradient(
-                                                    colors: [
-                                                      colorScheme
-                                                          .primaryContainer
-                                                          .withOpacity(0.5),
-                                                      colorScheme
-                                                          .primaryContainer
-                                                          .withOpacity(0.1),
-                                                    ],
-                                                    begin: Alignment.topLeft,
-                                                    end: Alignment.bottomRight,
-                                                  )
-                                                  : null,
-                                          borderRadius:
-                                              const BorderRadius.vertical(
-                                                top: Radius.circular(28),
-                                              ),
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Container(
-                                                  padding: const EdgeInsets.all(
-                                                    10,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color:
-                                                        geocamProvider
-                                                                .hasLocation
-                                                            ? colorScheme
-                                                                .primary
-                                                                .withOpacity(
-                                                                  0.2,
-                                                                )
-                                                            : colorScheme
-                                                                .surfaceVariant,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          16,
-                                                        ),
-                                                  ),
-                                                  child: Icon(
-                                                    Icons.location_on_rounded,
-                                                    color:
-                                                        geocamProvider
-                                                                .hasLocation
-                                                            ? colorScheme
-                                                                .primary
-                                                            : colorScheme
-                                                                .outline,
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 12),
-                                                Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      'Location',
-                                                      style: TextStyle(
-                                                        fontSize: 20,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        color:
-                                                            colorScheme
-                                                                .onSurface,
-                                                      ),
-                                                    ),
-                                                    Text(
-                                                      geocamProvider.hasLocation
-                                                          ? 'Location data captured'
-                                                          : 'No location data yet',
-                                                      style: TextStyle(
-                                                        fontSize: 14,
-                                                        color:
-                                                            colorScheme
-                                                                .onSurfaceVariant,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                            if (geocamProvider.hasLocation)
-                                              Container(
-                                                padding: const EdgeInsets.all(
-                                                  8,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: colorScheme.primary
-                                                      .withOpacity(0.1),
-                                                  shape: BoxShape.circle,
-                                                ),
-                                                child: Icon(
-                                                  Icons.check_rounded,
-                                                  color: colorScheme.primary,
-                                                  size: 20,
-                                                ),
-                                              ),
-                                          ],
-                                        ),
-                                      ),
-
-                                      // Content
-                                      Padding(
-                                        padding: const EdgeInsets.fromLTRB(
-                                          24,
-                                          0,
-                                          24,
-                                          24,
-                                        ),
-                                        child: Column(
-                                          children: [
-                                            if (geocamProvider.hasLocation)
-                                              Container(
-                                                width: double.infinity,
-                                                padding: const EdgeInsets.all(
-                                                  16,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color:
-                                                      colorScheme
-                                                          .surfaceContainerHighest,
-                                                  borderRadius:
-                                                      BorderRadius.circular(16),
-                                                  border: Border.all(
-                                                    color:
-                                                        colorScheme
-                                                            .outlineVariant,
-                                                    width: 0.5,
-                                                  ),
-                                                ),
-                                                child: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    _buildEnhancedLocationItem(
-                                                      context: context,
-                                                      title: 'Latitude',
-                                                      value:
-                                                          '${geocamProvider.latitude}',
-                                                      icon:
-                                                          Icons
-                                                              .north_east_rounded,
-                                                    ),
-                                                    Divider(
-                                                      color:
-                                                          colorScheme
-                                                              .outlineVariant,
-                                                      height: 24,
-                                                    ),
-                                                    _buildEnhancedLocationItem(
-                                                      context: context,
-                                                      title: 'Longitude',
-                                                      value:
-                                                          '${geocamProvider.longitude}',
-                                                      icon:
-                                                          Icons
-                                                              .north_west_rounded,
-                                                    ),
-                                                  ],
-                                                ),
-                                              )
-                                            else
-                                              _buildEmptyLocationState(context),
-                                            const SizedBox(height: 20),
-                                            FilledButton.tonalIcon(
-                                              onPressed:
-                                                  geocamProvider.isLoading
-                                                      ? null
-                                                      : () =>
-                                                          geocamProvider
-                                                              .getCurrentLocation(),
-                                              icon: const Icon(
-                                                Icons.my_location_rounded,
-                                              ),
-                                              label: Text(
-                                                geocamProvider.hasLocation
-                                                    ? 'Update Location'
-                                                    : 'Get Current Location',
-                                              ),
-                                              style: FilledButton.styleFrom(
-                                                minimumSize: const Size(
-                                                  double.infinity,
-                                                  48,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                        ),
-                      )
-                      .animate()
-                      .fadeIn(duration: 400.ms)
-                      .slideY(begin: 0.2, end: 0, curve: Curves.easeOutQuad),
+                  _buildLocationCard(context, state, colorScheme),
+                  const SizedBox(height: 20),
 
                   // Camera Section
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 24),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(28),
-                      boxShadow: [
-                        BoxShadow(
-                          color: colorScheme.shadow.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: OpenContainer(
-                      transitionType: ContainerTransitionType.fadeThrough,
-                      openBuilder:
-                          (context, _) => _PhotoDetailView(geocamProvider),
-                      closedShape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(28),
-                      ),
-                      closedElevation: 0,
-                      closedColor: Colors.transparent,
-                      closedBuilder:
-                          (context, openContainer) => Card(
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(28),
-                              side: BorderSide(
-                                color:
-                                    geocamProvider.hasImage
-                                        ? colorScheme.secondary.withOpacity(0.3)
-                                        : colorScheme.outlineVariant,
-                                width: geocamProvider.hasImage ? 1.5 : 1.0,
-                              ),
-                            ),
-                            color:
-                                geocamProvider.hasImage
-                                    ? colorScheme.secondaryContainer
-                                        .withOpacity(0.15)
-                                    : colorScheme.surfaceContainerLow,
-                            child: InkWell(
-                              onTap:
-                                  geocamProvider.hasImage
-                                      ? openContainer
-                                      : null,
-                              borderRadius: BorderRadius.circular(28),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Header with gradient
-                                  Container(
-                                    padding: const EdgeInsets.all(24.0),
-                                    decoration: BoxDecoration(
-                                      gradient:
-                                          geocamProvider.hasImage
-                                              ? LinearGradient(
-                                                colors: [
-                                                  colorScheme.secondaryContainer
-                                                      .withOpacity(0.5),
-                                                  colorScheme.secondaryContainer
-                                                      .withOpacity(0.1),
-                                                ],
-                                                begin: Alignment.topLeft,
-                                                end: Alignment.bottomRight,
-                                              )
-                                              : null,
-                                      borderRadius: const BorderRadius.vertical(
-                                        top: Radius.circular(28),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.all(10),
-                                              decoration: BoxDecoration(
-                                                color:
-                                                    geocamProvider.hasImage
-                                                        ? colorScheme.secondary
-                                                            .withOpacity(0.2)
-                                                        : colorScheme
-                                                            .surfaceVariant,
-                                                borderRadius:
-                                                    BorderRadius.circular(16),
-                                              ),
-                                              child: Icon(
-                                                Icons.camera_alt_rounded,
-                                                color:
-                                                    geocamProvider.hasImage
-                                                        ? colorScheme.secondary
-                                                        : colorScheme.outline,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  'Photo',
-                                                  style: TextStyle(
-                                                    fontSize: 20,
-                                                    fontWeight: FontWeight.bold,
-                                                    color:
-                                                        colorScheme.onSurface,
-                                                  ),
-                                                ),
-                                                Text(
-                                                  geocamProvider.hasImage
-                                                      ? 'Photo captured'
-                                                      : 'No photo taken yet',
-                                                  style: TextStyle(
-                                                    fontSize: 14,
-                                                    color:
-                                                        colorScheme
-                                                            .onSurfaceVariant,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ),
-                                        if (geocamProvider.hasImage)
-                                          Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: colorScheme.secondary
-                                                  .withOpacity(0.1),
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: Icon(
-                                              Icons.check_rounded,
-                                              color: colorScheme.secondary,
-                                              size: 20,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
+                  _buildCameraCard(context, state, colorScheme),
+                  const SizedBox(height: 20),
 
-                                  // Photo container
-                                  Padding(
-                                    padding: const EdgeInsets.fromLTRB(
-                                      24,
-                                      0,
-                                      24,
-                                      24,
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          height: 220,
-                                          width: double.infinity,
-                                          decoration: BoxDecoration(
-                                            color:
-                                                colorScheme
-                                                    .surfaceContainerHighest,
-                                            borderRadius: BorderRadius.circular(
-                                              20,
-                                            ),
-                                            boxShadow:
-                                                geocamProvider.hasImage
-                                                    ? [
-                                                      BoxShadow(
-                                                        color: colorScheme
-                                                            .shadow
-                                                            .withOpacity(0.15),
-                                                        blurRadius: 12,
-                                                        offset: const Offset(
-                                                          0,
-                                                          6,
-                                                        ),
-                                                      ),
-                                                    ]
-                                                    : null,
-                                            border:
-                                                !geocamProvider.hasImage
-                                                    ? Border.all(
-                                                      color:
-                                                          colorScheme
-                                                              .outlineVariant,
-                                                      width: 1,
-                                                      strokeAlign:
-                                                          BorderSide
-                                                              .strokeAlignInside,
-                                                    )
-                                                    : null,
-                                          ),
-                                          clipBehavior: Clip.antiAlias,
-                                          child:
-                                              geocamProvider.hasImage
-                                                  ? Stack(
-                                                    children: [
-                                                      Positioned.fill(
-                                                        child: Hero(
-                                                          tag: 'camera-photo',
-                                                          child: Image.file(
-                                                            File(
-                                                              geocamProvider
-                                                                  .imagePath!,
-                                                            ),
-                                                            fit: BoxFit.cover,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      // Image overlay
-                                                      Positioned(
-                                                        top: 8,
-                                                        right: 8,
-                                                        child: Container(
-                                                          padding:
-                                                              const EdgeInsets.symmetric(
-                                                                horizontal: 10,
-                                                                vertical: 6,
-                                                              ),
-                                                          decoration: BoxDecoration(
-                                                            color: Colors.black
-                                                                .withOpacity(
-                                                                  0.6,
-                                                                ),
-                                                            borderRadius:
-                                                                BorderRadius.circular(
-                                                                  16,
-                                                                ),
-                                                          ),
-                                                          child: Row(
-                                                            mainAxisSize:
-                                                                MainAxisSize
-                                                                    .min,
-                                                            children: [
-                                                              Icon(
-                                                                Icons
-                                                                    .touch_app_rounded,
-                                                                color:
-                                                                    Colors
-                                                                        .white,
-                                                                size: 16,
-                                                              ),
-                                                              const SizedBox(
-                                                                width: 4,
-                                                              ),
-                                                              Text(
-                                                                'View',
-                                                                style: TextStyle(
-                                                                  color:
-                                                                      Colors
-                                                                          .white,
-                                                                  fontSize: 12,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .w500,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  )
-                                                  : _buildEmptyCameraState(
-                                                    context,
-                                                  ),
-                                        ),
-                                        const SizedBox(height: 20),
-                                        Row(
-                                          children: [
-                                            Expanded(
-                                              child: FilledButton.tonalIcon(
-                                                onPressed:
-                                                    geocamProvider.isLoading
-                                                        ? null
-                                                        : () =>
-                                                            geocamProvider
-                                                                .takePhoto(),
-                                                icon: const Icon(
-                                                  Icons.camera_alt_rounded,
-                                                ),
-                                                label: Text(
-                                                  geocamProvider.hasImage
-                                                      ? 'Replace Photo'
-                                                      : 'Take Photo',
-                                                ),
-                                                style: FilledButton.styleFrom(
-                                                  minimumSize: const Size(
-                                                    0,
-                                                    48,
-                                                  ),
-                                                  backgroundColor:
-                                                      colorScheme
-                                                          .secondaryContainer,
-                                                  foregroundColor:
-                                                      colorScheme
-                                                          .onSecondaryContainer,
-                                                ),
-                                              ),
-                                            ),
-                                            if (geocamProvider.hasImage) ...[
-                                              const SizedBox(width: 12),
-                                              IconButton.filledTonal(
-                                                onPressed: () {
-                                                  // Open photo for viewing
-                                                  openContainer();
-                                                },
-                                                icon: const Icon(
-                                                  Icons.fullscreen_rounded,
-                                                ),
-                                                tooltip: 'View Full Image',
-                                                style: IconButton.styleFrom(
-                                                  backgroundColor: colorScheme
-                                                      .secondaryContainer
-                                                      .withOpacity(0.7),
-                                                  foregroundColor:
-                                                      colorScheme
-                                                          .onSecondaryContainer,
-                                                ),
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                    ),
-                  ).animate(delay: 200.ms).fadeIn(duration: 400.ms).slideY(begin: 0.2, end: 0, curve: Curves.easeOutQuad),
-
-                  // Action Buttons with advancement check
-                  Card(
-                    elevation: 0,
-                    color: colorScheme.surfaceContainerLowest,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(28),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(
-                            20.0,
-                          ).copyWith(bottom: 8),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: colorScheme.tertiaryContainer,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(
-                                  Icons.check_circle_outline_rounded,
-                                  color: colorScheme.onTertiaryContainer,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Finalize Your Capture',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: colorScheme.onSurface,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _getActionSubtitle(geocamProvider),
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Checklist
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Column(
-                            children: [
-                              _buildRequirementItem(
-                                context: context,
-                                title: 'Location data',
-                                isComplete: geocamProvider.hasLocation,
-                              ),
-                              _buildRequirementItem(
-                                context: context,
-                                title: 'Photo taken',
-                                isComplete: geocamProvider.hasImage,
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        // Action Buttons
-                        Padding(
-                          padding: const EdgeInsets.all(20.0).copyWith(top: 16),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Expanded(
-                                child: FilledButton.icon(
-                                      onPressed:
-                                          (!geocamProvider.hasLocation ||
-                                                  !geocamProvider.hasImage ||
-                                                  geocamProvider.isLoading)
-                                              ? null
-                                              : () {
-                                                geocamProvider.saveData();
-                                                _showSuccessDialog(
-                                                  context,
-                                                  colorScheme,
-                                                );
-                                              },
-                                      icon: const Icon(Icons.save_rounded),
-                                      label: const Text('Save Data'),
-                                      style: FilledButton.styleFrom(
-                                        minimumSize: const Size(0, 50),
-                                        textStyle: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    )
-                                    .animate(delay: 400.ms)
-                                    .fadeIn()
-                                    .move(
-                                      begin: const Offset(-30, 0),
-                                      end: Offset.zero,
-                                    ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed:
-                                      (!geocamProvider.hasLocation &&
-                                                  !geocamProvider.hasImage) ||
-                                              geocamProvider.isLoading
-                                          ? null
-                                          : () {
-                                            showDialog(
-                                              context: context,
-                                              builder:
-                                                  (context) => AlertDialog(
-                                                    title: Text('Reset Data?'),
-                                                    content: Text(
-                                                      'This will clear all captured photos and location data.',
-                                                    ),
-                                                    actions: [
-                                                      TextButton(
-                                                        onPressed:
-                                                            () =>
-                                                                Navigator.of(
-                                                                  context,
-                                                                ).pop(),
-                                                        child: Text('Cancel'),
-                                                      ),
-                                                      FilledButton(
-                                                        onPressed: () {
-                                                          geocamProvider
-                                                              .resetData();
-                                                          Navigator.of(
-                                                            context,
-                                                          ).pop();
-                                                          ScaffoldMessenger.of(
-                                                            context,
-                                                          ).showSnackBar(
-                                                            SnackBar(
-                                                              content: Row(
-                                                                children: [
-                                                                  Icon(
-                                                                    Icons
-                                                                        .refresh_rounded,
-                                                                    color:
-                                                                        colorScheme
-                                                                            .onErrorContainer,
-                                                                  ),
-                                                                  const SizedBox(
-                                                                    width: 12,
-                                                                  ),
-                                                                  const Text(
-                                                                    'Data reset successfully!',
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                              behavior:
-                                                                  SnackBarBehavior
-                                                                      .floating,
-                                                              backgroundColor:
-                                                                  colorScheme
-                                                                      .errorContainer,
-                                                              showCloseIcon:
-                                                                  true,
-                                                              closeIconColor:
-                                                                  colorScheme
-                                                                      .onErrorContainer,
-                                                              shape: RoundedRectangleBorder(
-                                                                borderRadius:
-                                                                    BorderRadius.circular(
-                                                                      10,
-                                                                    ),
-                                                              ),
-                                                            ),
-                                                          );
-                                                        },
-                                                        child: Text('Reset'),
-                                                        style:
-                                                            FilledButton.styleFrom(
-                                                              backgroundColor:
-                                                                  colorScheme
-                                                                      .error,
-                                                              foregroundColor:
-                                                                  colorScheme
-                                                                      .onError,
-                                                            ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                            );
-                                          },
-                                  icon: const Icon(Icons.refresh_rounded),
-                                  label: const Text('Reset Data'),
-                                  style: OutlinedButton.styleFrom(
-                                    minimumSize: const Size(0, 50),
-                                    textStyle: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    side: BorderSide(
-                                      color: colorScheme.outline,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                ).animate(delay: 500.ms).fadeIn().move(begin: const Offset(30, 0), end: Offset.zero),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ).animate(delay: 300.ms).fadeIn().slideY(begin: 0.3, end: 0),
-
-                  SizedBox(
-                    height: MediaQuery.of(context).padding.bottom > 0 ? 0 : 16,
-                  ),
+                  // Action Buttons Section
+                  _buildActionsCard(context, state, colorScheme),
                 ],
               ),
             ),
@@ -1102,180 +166,455 @@ class GeoCamScreen extends StatelessWidget {
     );
   }
 
-  // Calculate progress for progress bar
-  double _calculateProgress(GeoCamProvider provider) {
-    int steps = 0;
-    if (provider.hasLocation) steps++;
-    if (provider.hasImage) steps++;
-    return steps / 2;
-  }
-
-  // Get subtitle based on completion status
-  String _getActionSubtitle(GeoCamProvider provider) {
-    if (!provider.hasLocation && !provider.hasImage) {
-      return 'Complete both steps to continue';
-    } else if (!provider.hasLocation) {
-      return 'Missing location data';
-    } else if (!provider.hasImage) {
-      return 'Missing photo';
-    } else {
-      return 'All requirements met';
-    }
-  }
-
-  // Animated loading indicator
-  Widget _buildLoadingAnimation(ColorScheme colorScheme) {
-    return Container(
-      width: 48,
-      height: 48,
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
-        color: colorScheme.primary.withOpacity(0.1),
-        shape: BoxShape.circle,
+  // Location Card
+  Widget _buildLocationCard(BuildContext context, GeoCamState state, ColorScheme colorScheme) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(28),
+        side: BorderSide(
+          color: state.hasLocation
+              ? colorScheme.primary
+              : colorScheme.outlineVariant,
+          width: state.hasLocation ? 1.5 : 1.0,
+        ),
       ),
-      child: CircularProgressIndicator(
-        color: colorScheme.primary,
-        strokeWidth: 3,
-      ).animate().fadeIn(duration: 300.ms).rotate(duration: 2.seconds),
-    );
-  }
-
-  // Help bottom sheet
-  Widget _buildHelpSheet(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.7,
-      ),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
+      color: state.hasLocation
+          ? colorScheme.primaryContainer
+          : colorScheme.surfaceContainerLow,
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 40,
-            height: 5,
-            margin: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              color: colorScheme.outline.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
+          // Header
           Padding(
             padding: const EdgeInsets.all(20),
-            child: Text(
-              'How to use GeoCam',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-              ),
-            ),
-          ),
-          Flexible(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHelpItem(
-                    context: context,
-                    icon: Icons.location_on_rounded,
-                    title: 'Location',
-                    description:
-                        'Capture your current GPS coordinates by tapping the "Get Current Location" button.',
-                  ),
-                  _buildHelpItem(
-                    context: context,
-                    icon: Icons.camera_alt_rounded,
-                    title: 'Photo',
-                    description:
-                        'Take a photo using your device camera by tapping the "Take Photo" button.',
-                  ),
-                  _buildHelpItem(
-                    context: context,
-                    icon: Icons.save_rounded,
-                    title: 'Save',
-                    description:
-                        'Once both location and photo are captured, save the data to your device.',
-                  ),
-                  _buildHelpItem(
-                    context: context,
-                    icon: Icons.refresh_rounded,
-                    title: 'Reset',
-                    description:
-                        'Clear all captured data and start over if needed.',
-                  ),
-                  const SizedBox(height: 16),
-                  Divider(),
-                  const SizedBox(height: 16),
-                  Text(
-                    'About GeoCam',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: state.hasLocation
+                            ? colorScheme.primary
+                            : colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        Icons.location_on_rounded,
+                        color: state.hasLocation
+                            ? colorScheme.onPrimary
+                            : colorScheme.outline,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Location',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          state.hasLocation
+                              ? 'Location data captured'
+                              : 'No location data yet',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                if (state.hasLocation)
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.check_rounded,
+                      color: colorScheme.onPrimary,
+                      size: 20,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'GeoCam allows you to capture and store photos with precise location data for documentation, field surveys, and other location-based applications.',
-                    style: TextStyle(color: colorScheme.onSurfaceVariant),
-                  ),
-                ],
-              ),
+              ],
             ),
           ),
+
+          // Content
           Padding(
-            padding: const EdgeInsets.all(20),
-            child: FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Got it'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(double.infinity, 50),
-              ),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Column(
+              children: [
+                if (state.hasLocation)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLocationItem(
+                          context: context,
+                          title: 'Latitude',
+                          value: '${state.latitude}',
+                          icon: Icons.north_east_rounded,
+                          colorScheme: colorScheme,
+                        ),
+                        Divider(color: colorScheme.outlineVariant),
+                        _buildLocationItem(
+                          context: context,
+                          title: 'Longitude',
+                          value: '${state.longitude}',
+                          icon: Icons.north_west_rounded,
+                          colorScheme: colorScheme,
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  _buildEmptyLocationState(context, colorScheme),
+                
+                const SizedBox(height: 16),
+                FilledButton.tonalIcon(
+                  onPressed: state.isLoading
+                      ? null
+                      : () => context.read<GeoCamCubit>().getCurrentLocation(),
+                  icon: const Icon(Icons.my_location_rounded),
+                  label: Text(state.hasLocation ? 'Update Location' : 'Get Current Location'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
-    );
+    ).animate().fadeIn().slideY(begin: 0.1, end: 0);
+  }
+
+  // Camera Card
+  Widget _buildCameraCard(BuildContext context, GeoCamState state, ColorScheme colorScheme) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(28),
+        side: BorderSide(
+          color: state.hasImage
+              ? colorScheme.secondary
+              : colorScheme.outlineVariant,
+          width: state.hasImage ? 1.5 : 1.0,
+        ),
+      ),
+      color: state.hasImage
+          ? colorScheme.secondaryContainer
+          : colorScheme.surfaceContainerLow,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: state.hasImage
+                            ? colorScheme.secondary
+                            : colorScheme.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Icon(
+                        Icons.camera_alt_rounded,
+                        color: state.hasImage
+                            ? colorScheme.onSecondary
+                            : colorScheme.outline,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Photo',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          state.hasImage ? 'Photo captured' : 'No photo taken yet',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                if (state.hasImage)
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: colorScheme.secondary,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.check_rounded,
+                      color: colorScheme.onSecondary,
+                      size: 20,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          // Photo container
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 220,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(20),
+                    border: !state.hasImage
+                        ? Border.all(color: colorScheme.outlineVariant)
+                        : null,
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: state.hasImage
+                      ? Hero(
+                          tag: 'camera-photo',
+                          child: Image.file(
+                            File(state.imagePath!),
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : _buildEmptyCameraState(context, colorScheme),
+                ),
+                
+                const SizedBox(height: 16),
+                FilledButton.tonalIcon(
+                  onPressed: state.isLoading
+                      ? null
+                      : () => context.read<GeoCamCubit>().takePhoto(),
+                  icon: const Icon(Icons.camera_alt_rounded),
+                  label: Text(state.hasImage ? 'Replace Photo' : 'Take Photo'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 48),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ).animate().fadeIn().slideY(begin: 0.1, end: 0);
+  }
+
+  // Actions Card
+  Widget _buildActionsCard(BuildContext context, GeoCamState state, ColorScheme colorScheme) {
+    return Card(
+      elevation: 0,
+      color: colorScheme.surfaceContainerLowest,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(28),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20.0).copyWith(bottom: 8),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: colorScheme.tertiaryContainer,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.check_circle_outline_rounded,
+                    color: colorScheme.onTertiaryContainer,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Finalize Your Capture',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _getActionSubtitle(state),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Checklist
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                _buildRequirementItem(
+                  context: context,
+                  title: 'Location data',
+                  isComplete: state.hasLocation,
+                  colorScheme: colorScheme,
+                ),
+                _buildRequirementItem(
+                  context: context,
+                  title: 'Photo taken',
+                  isComplete: state.hasImage,
+                  colorScheme: colorScheme,
+                ),
+              ],
+            ),
+          ),
+
+          // Action Buttons
+          Padding(
+            padding: const EdgeInsets.all(20.0).copyWith(top: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: (!state.hasLocation || !state.hasImage || state.isLoading)
+                        ? null
+                        : () {
+                            context.read<GeoCamCubit>().saveData();
+                            _showSuccessDialog(context, colorScheme);
+                          },
+                    icon: const Icon(Icons.save_rounded),
+                    label: const Text('Save Data'),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 50),
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: (!state.hasLocation && !state.hasImage) || state.isLoading
+                        ? null
+                        : () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: const Text('Reset Data?'),
+                                content: const Text(
+                                  'This will clear all captured photos and location data.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).pop(),
+                                    child: const Text('Cancel'),
+                                  ),
+                                  FilledButton(
+                                    onPressed: () {
+                                      context.read<GeoCamCubit>().resetData();
+                                      Navigator.of(context).pop();
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: const Row(
+                                            children: [
+                                              Icon(Icons.refresh_rounded, color: Colors.white),
+                                              SizedBox(width: 12),
+                                              Text('Data reset successfully!'),
+                                            ],
+                                          ),
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: const Text('Reset'),
+                                    style: FilledButton.styleFrom(
+                                      backgroundColor: colorScheme.error,
+                                      foregroundColor: colorScheme.onError,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                    icon: const Icon(Icons.refresh_rounded),
+                    label: const Text('Reset Data'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 50),
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      side: BorderSide(color: colorScheme.outline, width: 1.5),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ).animate(delay: 300.ms).fadeIn().slideY(begin: 0.1, end: 0);
   }
 
   // Empty location state widget
-  Widget _buildEmptyLocationState(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
+  Widget _buildEmptyLocationState(BuildContext context, ColorScheme colorScheme) {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceVariant.withOpacity(0.5),
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: colorScheme.surface,
-              shape: BoxShape.circle,
-              border: Border.all(color: colorScheme.outlineVariant),
-            ),
-            child: Icon(
-              Icons.location_off_outlined,
-              size: 36,
-              color: colorScheme.onSurfaceVariant,
-            ),
+          Icon(
+            Icons.location_off_outlined,
+            size: 36,
+            color: colorScheme.onSurfaceVariant,
           ),
           const SizedBox(height: 16),
           Text(
@@ -1298,24 +637,14 @@ class GeoCamScreen extends StatelessWidget {
   }
 
   // Empty camera state widget
-  Widget _buildEmptyCameraState(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
+  Widget _buildEmptyCameraState(BuildContext context, ColorScheme colorScheme) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: colorScheme.surface,
-            shape: BoxShape.circle,
-            border: Border.all(color: colorScheme.outlineVariant),
-          ),
-          child: Icon(
-            Icons.add_a_photo_outlined,
-            size: 36,
-            color: colorScheme.onSurfaceVariant,
-          ),
+        Icon(
+          Icons.add_a_photo_outlined,
+          size: 36,
+          color: colorScheme.onSurfaceVariant,
         ),
         const SizedBox(height: 16),
         Text(
@@ -1341,9 +670,8 @@ class GeoCamScreen extends StatelessWidget {
     required BuildContext context,
     required String title,
     required bool isComplete,
+    required ColorScheme colorScheme,
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
@@ -1369,10 +697,7 @@ class GeoCamScreen extends StatelessWidget {
           Text(
             title,
             style: TextStyle(
-              color:
-                  isComplete
-                      ? colorScheme.onSurface
-                      : colorScheme.onSurfaceVariant,
+              color: isComplete ? colorScheme.onSurface : colorScheme.onSurfaceVariant,
               fontWeight: isComplete ? FontWeight.w500 : FontWeight.normal,
             ),
           ),
@@ -1389,24 +714,23 @@ class GeoCamScreen extends StatelessWidget {
     );
   }
 
-  // Enhanced location item with better visual styling
-  Widget _buildEnhancedLocationItem({
+  // Location item with better visual styling
+  Widget _buildLocationItem({
     required BuildContext context,
     required String title,
     required String value,
     required IconData icon,
+    required ColorScheme colorScheme,
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: colorScheme.primary.withOpacity(0.1),
+            color: colorScheme.primary,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, size: 18, color: colorScheme.primary),
+          child: Icon(icon, size: 18, color: colorScheme.onPrimary),
         ),
         const SizedBox(width: 16),
         Column(
@@ -1437,336 +761,107 @@ class GeoCamScreen extends StatelessWidget {
     );
   }
 
-  // Help item for the help sheet
-  Widget _buildHelpItem({
-    required BuildContext context,
-    required IconData icon,
-    required String title,
-    required String description,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: colorScheme.primaryContainer.withOpacity(0.6),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: colorScheme.primary, size: 24),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: TextStyle(color: colorScheme.onSurfaceVariant),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Success dialog with confetti animation
+  // Success dialog with animation
   void _showSuccessDialog(BuildContext context, ColorScheme colorScheme) {
     showDialog(
       context: context,
-      builder:
-          (context) => Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Success icon with animated circle
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.check_rounded,
-                      color: colorScheme.onPrimaryContainer,
-                      size: 40,
-                    ),
-                  ).animate().scale(
-                    begin: const Offset(0.5, 0.5),
-                    end: const Offset(1.0, 1.0),
-                    curve: Curves.elasticOut,
-                    duration: 600.ms,
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  Text(
-                    'Data Saved Successfully',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  Text(
-                    'Your photo and location data have been saved.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: colorScheme.onSurfaceVariant),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  FilledButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 48),
-                    ),
-                    child: const Text('Close'),
-                  ),
-                ],
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Success icon with animated circle
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.check_rounded,
+                  color: colorScheme.onPrimaryContainer,
+                  size: 40,
+                ),
+              ).animate().scale(
+                begin: const Offset(0.5, 0.5),
+                end: const Offset(1.0, 1.0),
+                curve: Curves.elasticOut,
+                duration: 600.ms,
               ),
-            ),
+
+              const SizedBox(height: 24),
+
+              Text(
+                'Data Saved Successfully',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              Text(
+                'Your photo and location data have been saved.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colorScheme.onSurfaceVariant),
+              ),
+
+              const SizedBox(height: 24),
+
+              FilledButton(
+                onPressed: () => Navigator.pop(context),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 48),
+                ),
+                child: const Text('Close'),
+              ),
+            ],
           ),
-    );
-  }
-}
-
-class _LocationDetailView extends StatelessWidget {
-  final GeoCamProvider provider;
-
-  const _LocationDetailView(this.provider);
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Location Details'),
-        centerTitle: true,
-        scrolledUnderElevation: 0,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Current Location',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-              ),
-            ).animate().fadeIn().slideX(begin: -50, end: 0),
-
-            const SizedBox(height: 24),
-
-            if (provider.hasLocation)
-              Card(
-                elevation: 0,
-                color: colorScheme.surfaceContainerHighest,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildDetailRow(
-                        context: context,
-                        icon: Icons.north_east_rounded,
-                        label: 'Latitude',
-                        value: '${provider.latitude}',
-                      ),
-                      Divider(color: colorScheme.outlineVariant),
-                      _buildDetailRow(
-                        context: context,
-                        icon: Icons.north_west_rounded,
-                        label: 'Longitude',
-                        value: '${provider.longitude}',
-                      ),
-                    ],
-                  ),
-                ),
-              ).animate(delay: 200.ms).fadeIn().scaleXY(begin: 0.8),
-
-            if (!provider.hasLocation)
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.location_off_rounded,
-                      size: 84,
-                      color: colorScheme.outline,
-                    ).animate().shake(),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No location data available',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ).animate().fadeIn(delay: 200.ms),
-                    const SizedBox(height: 32),
-                    FilledButton.icon(
-                      onPressed: () => provider.getCurrentLocation(),
-                      icon: const Icon(Icons.my_location_rounded),
-                      label: const Text('Get Location Now'),
-                    ).animate().scale(delay: 400.ms),
-                  ],
-                ),
-              ),
-          ],
         ),
       ),
     );
   }
 
-  Widget _buildDetailRow({
-    required BuildContext context,
-    required IconData icon,
-    required String label,
-    required String value,
-  }) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: colorScheme.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, size: 24, color: colorScheme.primary),
-              ),
-              const SizedBox(width: 16),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        )
-        .animate(delay: 300.ms)
-        .fadeIn()
-        .move(begin: const Offset(50, 0), end: Offset.zero);
-  }
-}
-
-class _PhotoDetailView extends StatelessWidget {
-  final GeoCamProvider provider;
-
-  const _PhotoDetailView(this.provider);
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text('Photo Details'),
-        backgroundColor: Colors.black.withOpacity(0.7),
-        foregroundColor: Colors.white,
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share_rounded),
-            onPressed: provider.hasImage ? () {} : null,
-          ),
-        ],
+  // Loading animation
+  Widget _buildLoadingAnimation(ColorScheme colorScheme) {
+    return Container(
+      width: 48,
+      height: 48,
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: colorScheme.primary,
+        shape: BoxShape.circle,
       ),
-      body:
-          provider.hasImage
-              ? Center(
-                child: Hero(
-                  tag: 'camera-photo',
-                  child: InteractiveViewer(
-                    minScale: 0.5,
-                    maxScale: 4.0,
-                    child: Image.file(
-                      File(provider.imagePath!),
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-              )
-              : Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.no_photography_rounded,
-                      size: 64,
-                      color: Colors.white.withOpacity(0.6),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No image available',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 18,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => provider.takePhoto(),
-        icon: const Icon(Icons.camera_alt_rounded),
-        label: const Text('New Photo'),
-        backgroundColor: colorScheme.primaryContainer,
-        foregroundColor: colorScheme.onPrimaryContainer,
-      ).animate().scale(delay: 300.ms),
+      child: CircularProgressIndicator(
+        color: colorScheme.onPrimary,
+        strokeWidth: 3,
+      ).animate().fadeIn(duration: 300.ms).rotate(duration: 2.seconds),
     );
+  }
+
+  // Calculate progress for progress bar
+  double _calculateProgress(GeoCamState state) {
+    int steps = 0;
+    if (state.hasLocation) steps++;
+    if (state.hasImage) steps++;
+    return steps / 2;
+  }
+
+  // Get subtitle based on completion status
+  String _getActionSubtitle(GeoCamState state) {
+    if (!state.hasLocation && !state.hasImage) {
+      return 'Complete both steps to continue';
+    } else if (!state.hasLocation) {
+      return 'Missing location data';
+    } else if (!state.hasImage) {
+      return 'Missing photo';
+    } else {
+      return 'All requirements met';
+    }
   }
 }
