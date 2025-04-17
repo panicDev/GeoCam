@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'providers/geocam_provider.dart';
-import 'providers/news_provider.dart';
-import 'providers/theme_provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'cubits/geocam/geocam_cubit.dart';
+import 'cubits/news/news_cubit.dart';
+import 'cubits/theme/theme_cubit.dart';
+import 'cubits/theme/theme_state.dart';
 import 'screens/home_screen.dart';
 
 void main() {
@@ -14,17 +15,17 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
+    return MultiBlocProvider(
       providers: [
-        ChangeNotifierProvider(create: (context) => GeoCamProvider()),
-        ChangeNotifierProvider(create: (context) => NewsProvider()),
-        ChangeNotifierProvider(create: (context) => ThemeProvider()),
+        BlocProvider(create: (context) => GeoCamCubit()),
+        BlocProvider(create: (context) => NewsCubit()),
+        BlocProvider(create: (context) => ThemeCubit()),
       ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
+      child: BlocBuilder<ThemeCubit, ThemeState>(
+        builder: (context, state) {
           return MaterialApp(
             title: 'GeoCam News',
-            theme: themeProvider.themeData,
+            theme: state.themeData,
             home: const HomeScreen(),
             debugShowCheckedModeBanner: false,
           );

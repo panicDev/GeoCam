@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../providers/news_provider.dart';
+import '../cubits/news/news_cubit.dart';
+import '../cubits/news/news_state.dart';
 import '../screens/news_detail_screen.dart';
 import '../utils/page_transitions.dart';
 
@@ -44,9 +45,9 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: Consumer<NewsProvider>(
-          builder: (context, newsProvider, child) {
-            final bookmarkedNews = newsProvider.bookmarkedNews;
+        child: BlocBuilder<NewsCubit, NewsState>(
+          builder: (context, state) {
+            final bookmarkedNews = state.bookmarkedNews;
 
             return CustomScrollView(
               controller: _scrollController,
@@ -184,14 +185,14 @@ class _BookmarksScreenState extends State<BookmarksScreen> {
       ),
       direction: DismissDirection.endToStart,
       onDismissed: (_) {
-        Provider.of<NewsProvider>(context, listen: false).toggleBookmark(news);
+        context.read<NewsCubit>().toggleBookmark(news);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Removed from bookmarks'),
             behavior: SnackBarBehavior.floating,
             action: SnackBarAction(
               label: 'Undo',
-              onPressed: () => Provider.of<NewsProvider>(context, listen: false).toggleBookmark(news),
+              onPressed: () => context.read<NewsCubit>().toggleBookmark(news),
             ),
           ),
         );

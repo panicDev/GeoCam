@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../providers/news_provider.dart';
+import '../cubits/news/news_cubit.dart';
+import '../cubits/news/news_state.dart';
 import '../screens/news_detail_screen.dart';
 import '../utils/page_transitions.dart';
 
@@ -20,7 +21,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
   void initState() {
     super.initState();
     Future.microtask(() =>
-        Provider.of<NewsProvider>(context, listen: false).fetchNews()
+        context.read<NewsCubit>().fetchNews()
     );
 
     _scrollController = ScrollController();
@@ -43,7 +44,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
   }
 
   Future<void> _refreshNews() async {
-    await Provider.of<NewsProvider>(context, listen: false).fetchNews();
+    await context.read<NewsCubit>().fetchNews();
   }
 
   @override
@@ -54,17 +55,17 @@ class _NewsListScreenState extends State<NewsListScreen> {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _refreshNews,
-          child: Consumer<NewsProvider>(
-            builder: (context, newsProvider, child) {
-              if (newsProvider.isLoading && newsProvider.news.isEmpty) {
+          child: BlocBuilder<NewsCubit, NewsState>(
+            builder: (context, state) {
+              if (state.isLoading && state.news.isEmpty) {
                 return _buildLoadingState(colorScheme);
               }
 
-              if (newsProvider.error != null && newsProvider.news.isEmpty) {
-                return _buildErrorState(newsProvider, colorScheme);
+              if (state.error != null && state.news.isEmpty) {
+                return _buildErrorState(state, colorScheme);
               }
 
-              if (newsProvider.news.isEmpty) {
+              if (state.news.isEmpty) {
                 return _buildEmptyState(colorScheme);
               }
 
@@ -75,7 +76,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                   SliverToBoxAdapter(
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      height: newsProvider.isLoading ? 2 : 0,
+                      height: state.isLoading ? 2 : 0,
                       child: LinearProgressIndicator(
                         backgroundColor: Colors.transparent,
                       ),
@@ -83,7 +84,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                   ),
 
                   // Featured news section
-                  if (newsProvider.news.isNotEmpty)
+                  if (state.news.isNotEmpty)
                     SliverToBoxAdapter(
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
@@ -101,7 +102,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                                 ),
                               ),
                             ),
-                            _buildFeaturedNewsItem(newsProvider.news.first, colorScheme),
+                            _buildFeaturedNewsItem(state.news.first, colorScheme),
                           ],
                         ),
                       ),
@@ -128,7 +129,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                             ),
                           ),
                           Text(
-                            '${newsProvider.news.length - 1} articles',
+                            '${state.news.length - 1} articles',
                             style: TextStyle(
                               fontSize: 14,
                               color: colorScheme.onSurfaceVariant,
@@ -146,8 +147,8 @@ class _NewsListScreenState extends State<NewsListScreen> {
                       delegate: SliverChildBuilderDelegate(
                             (context, index) {
                           // Skip first item as it's featured
-                          if (index >= newsProvider.news.length - 1) return null;
-                          final news = newsProvider.news[index + 1];
+                          if (index >= state.news.length - 1) return null;
+                          final news = state.news[index + 1];
                           return _buildImprovedNewsCard(news, index, colorScheme);
                         },
                       ),
@@ -188,7 +189,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                 color: isSelected ? colorScheme.onPrimaryContainer : colorScheme.onSurfaceVariant,
               )
                   : null,
-              backgroundColor: colorScheme.surfaceVariant,
+              backgroundColor: colorScheme.surfaceContainerHighest,
               selectedColor: colorScheme.primaryContainer,
               labelStyle: TextStyle(
                 color: isSelected ? colorScheme.onPrimaryContainer : colorScheme.onSurfaceVariant,
@@ -208,7 +209,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16.0),
-        side: BorderSide(color: colorScheme.outlineVariant.withOpacity(0.5)),
+        side: BorderSide(color: colorScheme.outlineVariant),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -238,7 +239,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
-                            color: colorScheme.surfaceVariant,
+                            color: colorScheme.surfaceContainerHighest,
                             child: Center(
                               child: Icon(
                                 Icons.image_not_supported,
@@ -254,7 +255,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                   AspectRatio(
                     aspectRatio: 16 / 9,
                     child: Container(
-                      color: colorScheme.surfaceVariant,
+                      color: colorScheme.surfaceContainerHighest,
                       child: Center(
                         child: Icon(
                           Icons.image_not_supported,
@@ -271,7 +272,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer.withOpacity(0.9),
+                      color: colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
@@ -292,7 +293,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
+                      color: Colors.black54,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -325,7 +326,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    news.title ?? 'No title',
+                    news.title,
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -335,16 +336,15 @@ class _NewsListScreenState extends State<NewsListScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
-                  if (news.body != null)
-                    Text(
-                      news.body,
-                      style: TextStyle(
-                        color: colorScheme.onSurfaceVariant,
-                        height: 1.4,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                  Text(
+                    news.body,
+                    style: TextStyle(
+                      color: colorScheme.onSurfaceVariant,
+                      height: 1.4,
                     ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 12),
                   // Bottom action bar
                   Row(
@@ -354,7 +354,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                         radius: 14,
                         backgroundColor: colorScheme.secondaryContainer,
                         child: Text(
-                          news.title != null && news.title.isNotEmpty
+                          news.title.isNotEmpty
                               ? news.title.substring(0, 1)
                               : '?',
                           style: TextStyle(
@@ -390,8 +390,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                         ),
                         onPressed: () {
                           // Toggle bookmark status
-                          Provider.of<NewsProvider>(context, listen: false)
-                              .toggleBookmark(news);
+                          context.read<NewsCubit>().toggleBookmark(news);
 
                           // Show feedback to user
                           ScaffoldMessenger.of(context).showSnackBar(
@@ -404,8 +403,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                               action: SnackBarAction(
                                 label: 'Undo',
                                 onPressed: () {
-                                  Provider.of<NewsProvider>(context, listen: false)
-                                      .toggleBookmark(news);
+                                  context.read<NewsCubit>().toggleBookmark(news);
                                 },
                               ),
                             ),
@@ -435,14 +433,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
-        color: colorScheme.surfaceVariant,
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.shadow.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
+        color: colorScheme.surfaceContainerHighest,
       ),
       clipBehavior: Clip.antiAlias,
       child: Stack(
@@ -475,7 +466,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                 end: Alignment.bottomCenter,
                 colors: [
                   Colors.transparent,
-                  Colors.black.withOpacity(0.8),
+                  Colors.black54,
                 ],
                 stops: const [0.5, 1.0],
               ),
@@ -496,7 +487,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: colorScheme.tertiaryContainer.withOpacity(0.9),
+                        color: colorScheme.tertiaryContainer,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Row(
@@ -522,7 +513,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
+                        color: Colors.black54,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -540,7 +531,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      news.title ?? 'No title',
+                      news.title,
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -555,7 +546,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                       children: [
                         CircleAvatar(
                           radius: 14,
-                          backgroundColor: Colors.white.withOpacity(0.2),
+                          backgroundColor: Colors.white24,
                           child: const Icon(
                             Icons.person,
                             color: Colors.white,
@@ -566,7 +557,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                         Text(
                           'Author Name',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white,
                             fontSize: 14,
                           ),
                         ),
@@ -575,7 +566,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                           width: 4,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.7),
+                            color: Colors.white70,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -583,7 +574,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                         Text(
                           '5 min read',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white,
                             fontSize: 14,
                           ),
                         ),
@@ -608,7 +599,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
                   ),
                 );
               },
-              splashColor: Colors.white.withOpacity(0.1),
+              splashColor: Colors.white24,
               highlightColor: Colors.transparent,
             ),
           ),
@@ -638,7 +629,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
     );
   }
 
-  Widget _buildErrorState(NewsProvider newsProvider, ColorScheme colorScheme) {
+  Widget _buildErrorState(NewsState state, ColorScheme colorScheme) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -668,9 +659,9 @@ class _NewsListScreenState extends State<NewsListScreen> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
-            if (newsProvider.error != null)
+            if (state.error != null)
               Text(
-                newsProvider.error!,
+                state.error!,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: colorScheme.onSurfaceVariant,
@@ -699,7 +690,7 @@ class _NewsListScreenState extends State<NewsListScreen> {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: colorScheme.primaryContainer.withOpacity(0.7),
+              color: colorScheme.primaryContainer,
               shape: BoxShape.circle,
             ),
             child: Icon(

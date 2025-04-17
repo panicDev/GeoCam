@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../providers/news_provider.dart';
+import '../cubits/news/news_cubit.dart';
+import '../cubits/news/news_state.dart';
 import '../widgets/network_image_with_fallback.dart';
 
 class NewsDetailScreen extends StatelessWidget {
@@ -14,8 +15,8 @@ class NewsDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final newsProvider = Provider.of<NewsProvider>(context);
-    final news = newsProvider.getNewsById(newsId);
+    final newsCubit = context.read<NewsCubit>();
+    final news = newsCubit.getNewsById(newsId);
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     
@@ -68,7 +69,7 @@ class NewsDetailScreen extends StatelessWidget {
                 final wasBookmarked = news.isBookmarked;
                 
                 // Toggle bookmark
-                newsProvider.toggleBookmark(news);
+                context.read<NewsCubit>().toggleBookmark(news);
                 
                 // Show confirmation with correct message
                 ScaffoldMessenger.of(context).showSnackBar(
